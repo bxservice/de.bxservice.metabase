@@ -20,7 +20,7 @@
 * MA 02110-1301, USA.                                                 *
 *                                                                     *
 * Contributors:                                                       *
-* - Diego Ruiz - Universidad Distrital Francisco Jose de Caldas       *
+* - Carlos Ruiz - globalqss - BX Service                              *
 **********************************************************************/
 
 package de.bxservice.metabase.factory;

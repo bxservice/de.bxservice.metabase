@@ -1,4 +1,4 @@
-/**********************************************************************
+/***********************************************************************
  * This file is part of iDempiere ERP Open Source                      *
  * http://www.idempiere.org                                            *
  *                                                                     *
@@ -20,49 +20,58 @@
  * MA 02110-1301, USA.                                                 *
  *                                                                     *
  * Contributors:                                                       *
- * - Carlos Ruiz                                                       *
+ * - Carlos Ruiz - globalqss - BX Service                              *
  **********************************************************************/
 
 package de.bxservice.metabase.webui.apps.form;
 
-import java.util.Base64;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
+import org.adempiere.webui.component.Button;
+import org.adempiere.webui.component.Grid;
+import org.adempiere.webui.component.GridFactory;
 import org.adempiere.webui.component.Label;
+import org.adempiere.webui.component.Listbox;
+import org.adempiere.webui.component.ListboxFactory;
 import org.adempiere.webui.component.Panel;
+import org.adempiere.webui.component.Row;
+import org.adempiere.webui.component.Rows;
 import org.adempiere.webui.editor.WEditor;
-import org.adempiere.webui.editor.WSearchEditor;
+import org.adempiere.webui.editor.WebEditorFactory;
 import org.adempiere.webui.event.ValueChangeEvent;
 import org.adempiere.webui.event.ValueChangeListener;
 import org.adempiere.webui.panel.ADForm;
 import org.adempiere.webui.panel.CustomForm;
 import org.adempiere.webui.panel.IFormController;
+import org.adempiere.webui.theme.ThemeManager;
 import org.adempiere.webui.util.ZKUpdateUtil;
-import org.compiere.model.MColumn;
-import org.compiere.model.MLookup;
-import org.compiere.model.MLookupFactory;
-import org.compiere.model.MProduct;
+import org.compiere.model.GridField;
+import org.compiere.model.GridFieldVO;
 import org.compiere.util.CLogger;
-import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
-import org.compiere.util.Language;
+import org.compiere.util.KeyNamePair;
 import org.compiere.util.Msg;
 import org.zkoss.json.JSONObject;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
+import org.zkoss.zk.ui.event.Events;
 import org.zkoss.zul.Borderlayout;
+import org.zkoss.zul.Cell;
 import org.zkoss.zul.Center;
-import org.zkoss.zul.Hlayout;
+import org.zkoss.zul.Div;
+import org.zkoss.zul.Hbox;
 import org.zkoss.zul.Iframe;
 import org.zkoss.zul.North;
-import org.zkoss.zul.Space;
+import org.zkoss.zul.Separator;
+import org.zkoss.zul.Timer;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import de.bxservice.metabase.model.MBXSMBDashboard;
+import de.bxservice.metabase.model.MBXSMBDashboardAccess;
+import de.bxservice.metabase.model.MBXSMBDashboardParam;
 
 /**
  *
@@ -71,27 +80,38 @@ import io.jsonwebtoken.SignatureAlgorithm;
  */
 public class MBDashboard implements IFormController, EventListener<Event>, ValueChangeListener {
 
+	/* TODO: Show comment from dashboard - could be in the QuickInfo section */
+	/* TODO: Show message ... auto-refresh every N seconds - next refresh on ... */
+	/* TODO: Cache for MBXSMBDashboard */
+
+	private static final String MB_REFRESH_BUTTON_ID = "refreshMB";
+
 	public static CLogger log = CLogger.getCLogger(MBDashboard.class);
 
 	private CustomForm		mbForm = new CustomForm();
-	private int         	m_WindowNo = 0;
+	// private int         	m_WindowNo = 0;
 	private Borderlayout	mainLayout	= new Borderlayout();
 	private Panel			northPanel = new Panel();
 	private Panel			centerPanel = new Panel();
-	private Hlayout 		northLayout = new Hlayout();
-	private Hlayout 		centerLayout = new Hlayout();
 	private Iframe			iframe = new Iframe();
-	private Label			labelProductYes = new Label();
-	private WSearchEditor   fieldProductYes;
-	private Label			labelProductNo = new Label();
-	private WSearchEditor   fieldProductNo;
-	
-	private int m_product_yes;
-	private int m_product_no;
+
+	private Label lDashboardh = new Label();
+	private Listbox dashboardBox = ListboxFactory.newDropdownListbox();
+	private Button bRefresh = new Button();
+	private int dashboardId = -1;
+	private MBXSMBDashboard dashboard;;
+
+	private Timer timer = new Timer();
+
+	//Parameters
+	private Hbox paramPanelHbox = new Hbox();
+	private Div boardParamsDiv;
+	private ArrayList<WEditor> m_sEditors = new ArrayList<WEditor>();
+	private Map<MBXSMBDashboardParam, WEditor> mapEditorParameter = new HashMap<MBXSMBDashboardParam, WEditor>();
 
 	public MBDashboard() {
 		super();
-		m_WindowNo = mbForm.getWindowNo();
+		// m_WindowNo = mbForm.getWindowNo();
 		try {
 			dynInit();
 			jbInit();
@@ -105,33 +125,52 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	 *	@throws Exception
 	 */
 	private void jbInit() throws Exception {
-
+		mbForm.setClosable(true);
+		mbForm.setMaximizable(true);
 		ZKUpdateUtil.setWidth(mbForm, "99%");
 		ZKUpdateUtil.setHeight(mbForm, "100%");
-		mbForm.setStyle("position: absolute; padding: 0; margin: 0");
 		mbForm.appendChild (mainLayout);
+		mbForm.setStyle("position: absolute; padding: 0; margin: 0");
+
 		ZKUpdateUtil.setHflex(mainLayout, "1");
 		ZKUpdateUtil.setHeight(mainLayout, "100%");
-		northPanel.appendChild(northLayout);
-		centerPanel.appendChild(centerLayout);
 		ZKUpdateUtil.setVflex(centerPanel, "min");
-		
-		labelProductYes.setText (Msg.getElement(Env.getCtx(), "M_Product_ID"));
-		labelProductNo.setText (Msg.getElement(Env.getCtx(), "M_Product_ID"));
-		
+
+		//North Panel
+		Grid gridLayout = GridFactory.newGridLayout();
+
 		North north = new North();
 		north.appendChild(northPanel);
 		ZKUpdateUtil.setVflex(north, "min");
 		ZKUpdateUtil.setWidth(northPanel, "100%");
 		mainLayout.appendChild(north);
 
-		northLayout.setValign("middle");
-		northLayout.setStyle("padding: 4px;");
-		northLayout.appendChild(labelProductYes.rightAlign());
-		northLayout.appendChild(fieldProductYes.getComponent());
-		northLayout.appendChild(new Space());
-		northLayout.appendChild(labelProductNo.rightAlign());
-		northLayout.appendChild(fieldProductNo.getComponent());
+		lDashboardh.setText(Msg.translate(Env.getCtx(), "BXS_MBDashboard_ID"));
+		Rows rows = gridLayout.newRows();
+		Row row = rows.newRow();
+		if (ThemeManager.isUseFontIconForImage())
+			bRefresh.setIconSclass("z-icon-Refresh");
+		else
+			bRefresh.setImage(ThemeManager.getThemeResource("images/Refresh16.png"));
+		bRefresh.setId(MB_REFRESH_BUTTON_ID);
+		bRefresh.setTooltiptext(Msg.getMsg(Env.getCtx(), "Refresh"));
+		bRefresh.addEventListener(Events.ON_CLICK, this);
+
+		Hbox northPanelHbox = new Hbox();
+		northPanelHbox.appendChild(lDashboardh.rightAlign());
+		northPanelHbox.appendChild(dashboardBox);
+		northPanelHbox.appendChild(bRefresh);
+		Cell cell = new Cell();
+		cell.setColspan(3);
+		cell.setRowspan(1);
+		cell.setAlign("left");
+		cell.appendChild(northPanelHbox);
+		row.appendChild(cell);
+		northPanel.appendChild(northPanelHbox);
+
+		row.appendChild(paramPanelHbox);
+
+		northPanel.appendChild(gridLayout);
 
 		Center center = new Center();
 		center.appendChild(centerPanel);
@@ -143,32 +182,30 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 		ZKUpdateUtil.setWidth(centerPanel, "100%");
 		ZKUpdateUtil.setHeight(centerPanel, "100%");
 		mainLayout.appendChild(center);
-		
-		centerLayout.setValign("middle");
-		centerLayout.setStyle("padding: 4px");
-		ZKUpdateUtil.setHflex(centerLayout, "1");
-		ZKUpdateUtil.setVflex(centerLayout, "max");
+
+		timer.addEventListener(Events.ON_TIMER, this);
+		timer.setVisible(false);
+		centerPanel.appendChild(timer);
 	}	//	jbInit
 
 	/**
-	 *  Initialize List of existing processes
+	 *  Initialize List of dashboards with permission
 	 * @throws Exception 
 	 */
 	private void dynInit() throws Exception {
-		Properties ctx = Env.getCtx();
-		Language language = Language.getLoginLanguage(); // Base Language
-		MLookup m_fieldProductYes = MLookupFactory.get(ctx, m_WindowNo,
-				MColumn.getColumn_ID(MProduct.Table_Name, "M_Product_ID"),
-				DisplayType.Search, language, MProduct.COLUMNNAME_M_Product_ID, 0, false,
-				" M_Product.IsSummary = 'N'");
-		fieldProductYes = new WSearchEditor("M_Product_ID", true, false, true, m_fieldProductYes);
-		fieldProductYes.addValueChangeListener(this);
-		MLookup m_fieldProductNo = MLookupFactory.get(ctx, m_WindowNo,
-				MColumn.getColumn_ID(MProduct.Table_Name, "M_Product_ID"),
-				DisplayType.Search, language, MProduct.COLUMNNAME_M_Product_ID, 0, false,
-				" M_Product.IsSummary = 'N'");
-		fieldProductNo = new WSearchEditor("M_Product_ID", true, false, true, m_fieldProductNo);
-		fieldProductNo.addValueChangeListener(this);
+		int dashboardDefaultId = MBXSMBDashboardAccess.getDefaultDashboardList();
+		for (KeyNamePair db : MBXSMBDashboard.getDashboardList()) {
+			dashboardBox.addItem(db);
+			if (db.getKey() == dashboardDefaultId) {
+				dashboardBox.setSelectedKeyNamePair(db);
+				dashboardId = dashboardDefaultId;
+				dashboard = new MBXSMBDashboard(Env.getCtx(), dashboardId, null);
+			}
+		}
+		dashboardBox.addEventListener(Events.ON_SELECT, this);
+
+		initParameters();
+		dashboardRefresh();
 	}   //  dynList
 
 	/**************************************************************************
@@ -176,57 +213,149 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	 *  @param e event
 	 */
 	public void onEvent(Event e) {
-	}//onEvent
+		if (Events.ON_SELECT.equals(e.getName()) && e.getTarget() instanceof Listbox) {
+			if (dashboardBox.getSelectedIndex() != -1) {
+				KeyNamePair dbknp = null;
+				dashboardId = -1;
+				dashboard = null;
+				dbknp = (KeyNamePair)dashboardBox.getSelectedItem().toKeyNamePair();	
+				if (dbknp != null) {
+					dashboardId = dbknp.getKey();
+					dashboard = new MBXSMBDashboard(Env.getCtx(), dashboardId, null);
+					initParameters();
+				}
+				dashboardRefresh();
+			}
+		} else if (Events.ON_CLICK.equals(e.getName()) && e.getTarget() instanceof Button) {
+			Button clickedButton = (Button) e.getTarget();
+			if (clickedButton.getId().equals(MB_REFRESH_BUTTON_ID)) {
+				if (dashboardId != -1) {
+					dashboardRefresh();
+				}
+			}
+		} else if (Events.ON_TIMER.equals(e.getName())) {
+			//Auto refresh
+			if (dashboardId != -1) {
+				dashboardRefresh();
+			}
+		}
+	} //onEvent
 
 	@Override
 	public void valueChange(ValueChangeEvent evt) {
 		if (evt != null && evt.getSource() instanceof WEditor) {
-			WEditor changedEditor = (WEditor)evt.getSource();
-			Object value = evt.getNewValue();
-			if (changedEditor == fieldProductNo) {
-				m_product_no = (value == null ? 0 : (Integer) value);
-			} else if (changedEditor == fieldProductYes) {
-				m_product_yes = (value == null ? 0 : (Integer) value);
+			WEditor editor = (WEditor) evt.getSource();
+			MBXSMBDashboardParam param = null;
+			for (Entry<MBXSMBDashboardParam, WEditor> es : mapEditorParameter.entrySet()) {
+				if (es.getValue() == editor) {
+					param = es.getKey();
+					break;
+				}
 			}
-			if (m_product_no > 0 && m_product_yes > 0) {
-				String metabaseSecretKey = "ef9eb4104db8f2deca8cd7f15e255b57c09269c98559a9cde4ca2dd30a8b2e26";
-				String metabaseSiteURL = "http://localhost:3000";
-				Map<String, Object> payload = new HashMap<String, Object>();
-				JSONObject resource = new JSONObject();
-				resource.put("dashboard", 1);
-				payload.put("resource", resource);
-
-				JSONObject params = new JSONObject();
-				params.put("prod1", String.valueOf(m_product_yes));
-				params.put("prod2", String.valueOf(m_product_no));
-				params.put("userid", String.valueOf(Env.getAD_User_ID(Env.getCtx())));
-				payload.put("params", params);
-
-				String url = getMetabaseEmbeddedUrl(metabaseSecretKey, payload, metabaseSiteURL);
-				// iframe.setSrc("http://192.168.0.18:3000/public/question/e2f8f626-a4bf-49d8-b963-738df917d24d?prod1="+m_product_yes+"&prod2="+m_product_no);
-				iframe.setSrc(url + "#bordered=true&titled=true");
+			if (param != null && param.isBXS_MBIsTriggerRefresh()) {
+				dashboardRefresh();
 			}
-        }
+		}
 	}
 
 	public ADForm getForm() {
 		return mbForm;
 	}
 
-	public String getMetabaseEmbeddedUrl(String metabaseSecretKey, Map<String, Object> payload, String metabaseUrl) {
-		// Need to encode the secret key
-		String metaBaseEncodedSecretKey = Base64.getEncoder().encodeToString(metabaseSecretKey.getBytes());
-		final Date createdDate = new Date();
-	    final Date expirationDate = new Date(System.currentTimeMillis() + 10000); // 10 seconds
-		String jwtToken = Jwts.builder()
-				.setHeaderParam("typ", "JWT")
-				.setClaims(payload)
-				.signWith(SignatureAlgorithm.HS256, metaBaseEncodedSecretKey)
-				.setIssuedAt(createdDate)
-				.setExpiration(expirationDate)
-				.compact();
-		System.out.println(jwtToken);
-		return metabaseUrl + "/embed/dashboard/" + jwtToken;
+	private void dashboardRefresh() {
+		if (dashboardId <= 0) {
+			iframe.setSrc(null);
+		} else {
+			JSONObject params = new JSONObject();
+			for (MBXSMBDashboardParam param : dashboard.getParameters()) {
+				WEditor editor = mapEditorParameter.get(param);
+				params.put(param.getColumnName(), editor.getValue());
+			}
+
+			String url = dashboard.getMetabaseEmbeddedUrl(params);
+
+			if (dashboard.getWidth() != null && dashboard.getWidth().intValue() > 0) {
+				ZKUpdateUtil.setWidth(iframe, dashboard.getWidth().intValue() + "px");
+			}
+			if (dashboard.getHeight() != null && dashboard.getHeight().intValue() > 0) {
+				ZKUpdateUtil.setHeight(iframe, dashboard.getHeight().intValue() + "px");
+			}
+			iframe.setSrc(url);
+
+			// Auto refresh in seconds
+			setTimer(dashboard.getBXS_AutoRefresh());
+		}
+	}
+
+	private void setTimer(int refreshInterval) {
+		if (refreshInterval > 0) {
+			timer.setDelay(refreshInterval * 1000);
+			timer.start();
+		} else {
+			timer.stop();
+		}
+	}
+
+	/**
+	 * Load parameters for Kanban Board
+	 */
+	private void initParameters() {
+		if (boardParamsDiv != null)
+			paramPanelHbox.removeChild(boardParamsDiv);
+		boardParamsDiv = new Div();
+		boardParamsDiv.setSclass("padding-left: 5px;");
+
+		if (dashboardId > 0 && dashboard.getParameters().size() > 0) {
+
+			fillParameterEditors();
+			for (int i = 0; i < m_sEditors.size(); i++) {
+				WEditor editor = m_sEditors.get(i);
+				boardParamsDiv.appendChild(new Separator("vertical"));
+				boardParamsDiv.appendChild(editor.getLabel());
+				editor.getLabel().setStyle("padding-right:3px;");
+				boardParamsDiv.appendChild(editor.getComponent());
+			}
+		}
+		boardParamsDiv.appendChild(new Separator("vertical"));
+		paramPanelHbox.appendChild(boardParamsDiv);
+	}
+
+	private void fillParameterEditors() {
+		m_sEditors.clear();
+		mapEditorParameter.clear();
+		
+		for (MBXSMBDashboardParam param : dashboard.getParameters()) {
+			GridField field = getGridField(param);
+			WEditor editor = WebEditorFactory.getEditor(field, true);
+			editor.setMandatory(false);
+			editor.setReadWrite(true);
+			editor.addValueChangeListener(this);
+
+			Label label = editor.getLabel();
+			label.setValue(field.getHeader());
+
+			Object defaultValue = field.getDefaultForPanel();
+			if (defaultValue != null) {
+				editor.setValue(defaultValue);
+			}
+
+			if (field.isReadOnly()) {
+				editor.setReadWrite(false);
+			}
+			
+			m_sEditors.add(editor);
+			mapEditorParameter.put(param, editor);
+		}
+	}
+
+	private GridField getGridField(MBXSMBDashboardParam param) {
+		GridFieldVO gvo = GridFieldVO.createParameter(Env.getCtx(), mbForm.getWindowNo(), 0, 0, 0,
+				param.getColumnName(), param.getName(), param.getAD_Reference_ID(), param.getAD_Reference_Value_ID(),
+				false, false, null);
+		gvo.DefaultValue = param.getDefaultValue();
+		gvo.IsReadOnly = param.isReadOnly();
+		GridField field = new GridField(gvo);
+		return field;
 	}
 
 }
