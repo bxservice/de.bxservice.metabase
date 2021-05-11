@@ -115,7 +115,7 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 
 		Map<String, Object> payload = new HashMap<String, Object>();
 		JSONObject resource = new JSONObject();
-		resource.put("dashboard", 4);
+		resource.put("dashboard", getBXS_MBDashboardNo());
 		payload.put("resource", resource);
 		payload.put("params", params);
 
