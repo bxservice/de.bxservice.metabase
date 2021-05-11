@@ -269,8 +269,11 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 			JSONObject params = new JSONObject();
 			for (MBXSMBDashboardParam param : dashboard.getParameters()) {
 				WEditor editor = mapEditorParameter.get(param);
-				params.put(param.getColumnName(), editor.getValue());
+				params.put(param.getColumnName().toLowerCase(), editor.getValue());
 			}
+			// Add mandatory parameter AD_Client_ID if it doesn't exist
+			if (! params.containsKey("ad_client_id"))
+				params.put("ad_client_id", Env.getAD_Client_ID(Env.getCtx()));
 
 			String url = dashboard.getMetabaseEmbeddedUrl(params);
 
