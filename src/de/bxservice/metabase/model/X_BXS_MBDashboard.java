@@ -33,7 +33,7 @@ public class X_BXS_MBDashboard extends PO implements I_BXS_MBDashboard, I_Persis
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20210507L;
+	private static final long serialVersionUID = 20210512L;
 
     /** Standard Constructor */
     public X_BXS_MBDashboard (Properties ctx, int BXS_MBDashboard_ID, String trxName)
@@ -100,8 +100,8 @@ public class X_BXS_MBDashboard extends PO implements I_BXS_MBDashboard, I_Persis
 		return ii.intValue();
 	}
 
-	/** Set Metabase Dashboard.
-		@param BXS_MBDashboard_ID Metabase Dashboard	  */
+	/** Set Dashboard.
+		@param BXS_MBDashboard_ID Dashboard	  */
 	public void setBXS_MBDashboard_ID (int BXS_MBDashboard_ID)
 	{
 		if (BXS_MBDashboard_ID < 1) 
@@ -110,8 +110,8 @@ public class X_BXS_MBDashboard extends PO implements I_BXS_MBDashboard, I_Persis
 			set_ValueNoCheck (COLUMNNAME_BXS_MBDashboard_ID, Integer.valueOf(BXS_MBDashboard_ID));
 	}
 
-	/** Get Metabase Dashboard.
-		@return Metabase Dashboard	  */
+	/** Get Dashboard.
+		@return Dashboard	  */
 	public int getBXS_MBDashboard_ID () 
 	{
 		Integer ii = (Integer)get_Value(COLUMNNAME_BXS_MBDashboard_ID);
@@ -203,9 +203,9 @@ public class X_BXS_MBDashboard extends PO implements I_BXS_MBDashboard, I_Persis
 	public void setBXS_MBServer_ID (int BXS_MBServer_ID)
 	{
 		if (BXS_MBServer_ID < 1) 
-			set_ValueNoCheck (COLUMNNAME_BXS_MBServer_ID, null);
+			set_Value (COLUMNNAME_BXS_MBServer_ID, null);
 		else 
-			set_ValueNoCheck (COLUMNNAME_BXS_MBServer_ID, Integer.valueOf(BXS_MBServer_ID));
+			set_Value (COLUMNNAME_BXS_MBServer_ID, Integer.valueOf(BXS_MBServer_ID));
 	}
 
 	/** Get Metabase Server.

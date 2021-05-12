@@ -31,7 +31,7 @@ public class X_BXS_MBDashboardParam extends PO implements I_BXS_MBDashboardParam
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20210507L;
+	private static final long serialVersionUID = 20210512L;
 
     /** Standard Constructor */
     public X_BXS_MBDashboardParam (Properties ctx, int BXS_MBDashboardParam_ID, String trxName)
@@ -45,6 +45,8 @@ public class X_BXS_MBDashboardParam extends PO implements I_BXS_MBDashboardParam
 			setBXS_MBIsTriggerRefresh (true);
 // Y
 			setColumnName (null);
+			setIsDisplayed (true);
+// Y
 			setIsReadOnly (false);
 // N
 			setName (null);
@@ -142,8 +144,8 @@ public class X_BXS_MBDashboardParam extends PO implements I_BXS_MBDashboardParam
 		return (I_BXS_MBDashboard)MTable.get(getCtx(), I_BXS_MBDashboard.Table_Name)
 			.getPO(getBXS_MBDashboard_ID(), get_TrxName());	}
 
-	/** Set Metabase Dashboard.
-		@param BXS_MBDashboard_ID Metabase Dashboard	  */
+	/** Set Dashboard.
+		@param BXS_MBDashboard_ID Dashboard	  */
 	public void setBXS_MBDashboard_ID (int BXS_MBDashboard_ID)
 	{
 		if (BXS_MBDashboard_ID < 1) 
@@ -152,8 +154,8 @@ public class X_BXS_MBDashboardParam extends PO implements I_BXS_MBDashboardParam
 			set_ValueNoCheck (COLUMNNAME_BXS_MBDashboard_ID, Integer.valueOf(BXS_MBDashboard_ID));
 	}
 
-	/** Get Metabase Dashboard.
-		@return Metabase Dashboard	  */
+	/** Get Dashboard.
+		@return Dashboard	  */
 	public int getBXS_MBDashboard_ID () 
 	{
 		Integer ii = (Integer)get_Value(COLUMNNAME_BXS_MBDashboard_ID);
@@ -283,6 +285,30 @@ public class X_BXS_MBDashboardParam extends PO implements I_BXS_MBDashboardParam
 	public String getHelp () 
 	{
 		return (String)get_Value(COLUMNNAME_Help);
+	}
+
+	/** Set Displayed.
+		@param IsDisplayed 
+		Determines, if this field is displayed
+	  */
+	public void setIsDisplayed (boolean IsDisplayed)
+	{
+		set_Value (COLUMNNAME_IsDisplayed, Boolean.valueOf(IsDisplayed));
+	}
+
+	/** Get Displayed.
+		@return Determines, if this field is displayed
+	  */
+	public boolean isDisplayed () 
+	{
+		Object oo = get_Value(COLUMNNAME_IsDisplayed);
+		if (oo != null) 
+		{
+			 if (oo instanceof Boolean) 
+				 return ((Boolean)oo).booleanValue(); 
+			return "Y".equals(oo);
+		}
+		return false;
 	}
 
 	/** Set Read Only.

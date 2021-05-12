@@ -31,7 +31,7 @@ public class X_BXS_MBServer extends PO implements I_BXS_MBServer, I_Persistent
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20210507L;
+	private static final long serialVersionUID = 20210512L;
 
     /** Standard Constructor */
     public X_BXS_MBServer (Properties ctx, int BXS_MBServer_ID, String trxName)

@@ -97,10 +97,10 @@ public interface I_BXS_MBDashboardParam
     /** Column name BXS_MBDashboard_ID */
     public static final String COLUMNNAME_BXS_MBDashboard_ID = "BXS_MBDashboard_ID";
 
-	/** Set Metabase Dashboard	  */
+	/** Set Dashboard	  */
 	public void setBXS_MBDashboard_ID (int BXS_MBDashboard_ID);
 
-	/** Get Metabase Dashboard	  */
+	/** Get Dashboard	  */
 	public int getBXS_MBDashboard_ID();
 
 	public I_BXS_MBDashboard getBXS_MBDashboard() throws RuntimeException;
@@ -214,6 +214,19 @@ public interface I_BXS_MBDashboardParam
 	  * The record is active in the system
 	  */
 	public boolean isActive();
+
+    /** Column name IsDisplayed */
+    public static final String COLUMNNAME_IsDisplayed = "IsDisplayed";
+
+	/** Set Displayed.
+	  * Determines, if this field is displayed
+	  */
+	public void setIsDisplayed (boolean IsDisplayed);
+
+	/** Get Displayed.
+	  * Determines, if this field is displayed
+	  */
+	public boolean isDisplayed();
 
     /** Column name IsReadOnly */
     public static final String COLUMNNAME_IsReadOnly = "IsReadOnly";

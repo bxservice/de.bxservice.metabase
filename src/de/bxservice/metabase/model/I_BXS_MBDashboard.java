@@ -80,10 +80,10 @@ public interface I_BXS_MBDashboard
     /** Column name BXS_MBDashboard_ID */
     public static final String COLUMNNAME_BXS_MBDashboard_ID = "BXS_MBDashboard_ID";
 
-	/** Set Metabase Dashboard	  */
+	/** Set Dashboard	  */
 	public void setBXS_MBDashboard_ID (int BXS_MBDashboard_ID);
 
-	/** Get Metabase Dashboard	  */
+	/** Get Dashboard	  */
 	public int getBXS_MBDashboard_ID();
 
     /** Column name BXS_MBDashboardNo */
