@@ -32,14 +32,10 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.adempiere.webui.component.Button;
-import org.adempiere.webui.component.Grid;
-import org.adempiere.webui.component.GridFactory;
 import org.adempiere.webui.component.Label;
 import org.adempiere.webui.component.Listbox;
 import org.adempiere.webui.component.ListboxFactory;
 import org.adempiere.webui.component.Panel;
-import org.adempiere.webui.component.Row;
-import org.adempiere.webui.component.Rows;
 import org.adempiere.webui.editor.WEditor;
 import org.adempiere.webui.editor.WebEditorFactory;
 import org.adempiere.webui.event.ValueChangeEvent;
@@ -60,14 +56,12 @@ import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.event.Events;
 import org.zkoss.zul.Borderlayout;
-import org.zkoss.zul.Cell;
 import org.zkoss.zul.Center;
-import org.zkoss.zul.Div;
-import org.zkoss.zul.Hbox;
+import org.zkoss.zul.Hlayout;
 import org.zkoss.zul.Iframe;
 import org.zkoss.zul.North;
-import org.zkoss.zul.Separator;
 import org.zkoss.zul.Timer;
+import org.zkoss.zul.Vlayout;
 
 import de.bxservice.metabase.model.MBXSMBDashboard;
 import de.bxservice.metabase.model.MBXSMBDashboardAccess;
@@ -81,40 +75,30 @@ import de.bxservice.metabase.model.MBXSMBDashboardParam;
 public class MBDashboard implements IFormController, EventListener<Event>, ValueChangeListener {
 
 	/* TODO: Show comment from dashboard - could be in the QuickInfo section */
-	/* TODO: Show message ... auto-refresh every N seconds - next refresh on ... */
-	/* TODO: Cache for MBXSMBDashboard */
-
-	private static final String MB_REFRESH_BUTTON_ID = "refreshMB";
 
 	public static CLogger log = CLogger.getCLogger(MBDashboard.class);
 
-	private CustomForm		mbForm = new CustomForm();
-	// private int         	m_WindowNo = 0;
-	private Borderlayout	mainLayout	= new Borderlayout();
-	private Panel			northPanel = new Panel();
-	private Panel			centerPanel = new Panel();
-	private Iframe			iframe = new Iframe();
-
-	private Label lDashboardh = new Label();
-	private Listbox dashboardBox = ListboxFactory.newDropdownListbox();
-	private Button bRefresh = new Button();
 	private int dashboardId = -1;
 	private MBXSMBDashboard dashboard;;
 
-	private Timer timer = new Timer();
+	// ZK Components accessed in several methods
+	private CustomForm mbForm;
+	private Listbox dashboardBox;
+	private Label lStatus;
+	private Button bRefresh;
+	private Vlayout northVLayout;
+	private Hlayout prmLayout = null;
+	private Iframe iframe;
+	private Timer timer;
 
-	//Parameters
-	private Hbox paramPanelHbox = new Hbox();
-	private Div boardParamsDiv;
+	// Parameters
 	private ArrayList<WEditor> m_sEditors = new ArrayList<WEditor>();
 	private Map<MBXSMBDashboardParam, WEditor> mapEditorParameter = new HashMap<MBXSMBDashboardParam, WEditor>();
 
 	public MBDashboard() {
-		super();
-		// m_WindowNo = mbForm.getWindowNo();
 		try {
-			dynInit();
 			jbInit();
+			dynInit();
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, "init", ex);
 		}
@@ -125,67 +109,79 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	 *	@throws Exception
 	 */
 	private void jbInit() throws Exception {
-		mbForm.setClosable(true);
-		mbForm.setMaximizable(true);
-		ZKUpdateUtil.setWidth(mbForm, "99%");
-		ZKUpdateUtil.setHeight(mbForm, "100%");
-		mbForm.appendChild (mainLayout);
-		mbForm.setStyle("position: absolute; padding: 0; margin: 0");
+		//Window > Window > ADForm > CustomForm: mbForm
+		//  Borderlayout: mainLayout
+		//    North: north
+		//      Vlayout: northVLayout
+		//        HLayout: dashLayout
+		//          Label: lDashboardh
+		//          Listbox: dashboardBox
+		//          Button: bRefresh
+		//          Label: lStatus
+		//        HLayout: prmLayout
+		//          [
+		//            Label
+		//            WEditor
+		//          ]
+		//    Center: center
+		//      Panel: centerPanel
+		//        Iframe: iframe
+		//        Timer: timer
+		Label lDashboardh = new Label(Msg.translate(Env.getCtx(), "BXS_MBDashboard_ID"));
 
-		ZKUpdateUtil.setHflex(mainLayout, "1");
-		ZKUpdateUtil.setHeight(mainLayout, "100%");
-		ZKUpdateUtil.setVflex(centerPanel, "min");
+		dashboardBox = ListboxFactory.newDropdownListbox();
 
-		//North Panel
-		Grid gridLayout = GridFactory.newGridLayout();
-
-		North north = new North();
-		north.appendChild(northPanel);
-		ZKUpdateUtil.setVflex(north, "min");
-		ZKUpdateUtil.setWidth(northPanel, "100%");
-		mainLayout.appendChild(north);
-
-		lDashboardh.setText(Msg.translate(Env.getCtx(), "BXS_MBDashboard_ID"));
-		Rows rows = gridLayout.newRows();
-		Row row = rows.newRow();
+		bRefresh = new Button();
 		if (ThemeManager.isUseFontIconForImage())
 			bRefresh.setIconSclass("z-icon-Refresh");
 		else
 			bRefresh.setImage(ThemeManager.getThemeResource("images/Refresh16.png"));
-		bRefresh.setId(MB_REFRESH_BUTTON_ID);
 		bRefresh.setTooltiptext(Msg.getMsg(Env.getCtx(), "Refresh"));
 		bRefresh.addEventListener(Events.ON_CLICK, this);
 
-		Hbox northPanelHbox = new Hbox();
-		northPanelHbox.appendChild(lDashboardh.rightAlign());
-		northPanelHbox.appendChild(dashboardBox);
-		northPanelHbox.appendChild(bRefresh);
-		Cell cell = new Cell();
-		cell.setColspan(3);
-		cell.setRowspan(1);
-		cell.setAlign("left");
-		cell.appendChild(northPanelHbox);
-		row.appendChild(cell);
-		northPanel.appendChild(northPanelHbox);
+		lStatus = new Label();
 
-		row.appendChild(paramPanelHbox);
+		Hlayout dashLayout = new Hlayout();
+		dashLayout.appendChild(lDashboardh);
+		dashLayout.appendChild(dashboardBox);
+		dashLayout.appendChild(bRefresh);
+		dashLayout.appendChild(lStatus);
 
-		northPanel.appendChild(gridLayout);
+		northVLayout = new Vlayout();
+		northVLayout.appendChild(dashLayout);
+		// prmLayout defined and added to northVLayout in initParameters
 
-		Center center = new Center();
-		center.appendChild(centerPanel);
+		North north = new North();
+		north.appendChild(northVLayout);
+
+		iframe = new Iframe();
+		ZKUpdateUtil.setHflex(iframe, "1");
+		ZKUpdateUtil.setVflex(iframe, "1");
+
+		Panel centerPanel = new Panel();
+		ZKUpdateUtil.setHflex(centerPanel, "1");
+		ZKUpdateUtil.setVflex(centerPanel, "1");
 		centerPanel.appendChild(iframe);
-		ZKUpdateUtil.setVflex(iframe, "max");
-		ZKUpdateUtil.setWidth(iframe, "100%");
-		ZKUpdateUtil.setHeight(iframe, "100%");
-		ZKUpdateUtil.setVflex(center, "max");
-		ZKUpdateUtil.setWidth(centerPanel, "100%");
-		ZKUpdateUtil.setHeight(centerPanel, "100%");
-		mainLayout.appendChild(center);
 
+		timer = new Timer();
 		timer.addEventListener(Events.ON_TIMER, this);
 		timer.setVisible(false);
 		centerPanel.appendChild(timer);
+
+		Center center = new Center();
+		center.appendChild(centerPanel);
+
+		Borderlayout mainLayout	= new Borderlayout();
+		mainLayout.appendChild(north);
+		mainLayout.appendChild(center);
+
+		mbForm = new CustomForm();
+		mbForm.setClosable(true);
+		mbForm.setMaximizable(true);
+		ZKUpdateUtil.setWidth(mbForm, "99%");
+		ZKUpdateUtil.setHeight(mbForm, "100%");
+		mbForm.setStyle("position: absolute; padding: 0; margin: 0");
+		mbForm.appendChild (mainLayout);
 	}	//	jbInit
 
 	/**
@@ -228,7 +224,7 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 			}
 		} else if (Events.ON_CLICK.equals(e.getName()) && e.getTarget() instanceof Button) {
 			Button clickedButton = (Button) e.getTarget();
-			if (clickedButton.getId().equals(MB_REFRESH_BUTTON_ID)) {
+			if (clickedButton == bRefresh) {
 				if (dashboardId != -1) {
 					dashboardRefresh();
 				}
@@ -265,6 +261,7 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	private void dashboardRefresh() {
 		if (dashboardId <= 0) {
 			iframe.setSrc(null);
+			setStatus(Msg.getMsg(Env.getCtx(), "BXS_MBSelectDashboard"));
 		} else {
 			JSONObject params = new JSONObject();
 			for (MBXSMBDashboardParam param : dashboard.getParameters()) {
@@ -294,8 +291,10 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 		if (refreshInterval > 0) {
 			timer.setDelay(refreshInterval * 1000);
 			timer.start();
+			setStatus(Msg.getMsg(Env.getCtx(), "BXS_MBAutoRefresh", new Object[] {refreshInterval}) + (dashboard.getHelp() != null ? " - " + dashboard.getHelp() : ""));
 		} else {
 			timer.stop();
+			setStatus((dashboard.getHelp() != null ? dashboard.getHelp() : ""));
 		}
 	}
 
@@ -303,30 +302,32 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	 * Load parameters for Kanban Board
 	 */
 	private void initParameters() {
-		if (boardParamsDiv != null)
-			paramPanelHbox.removeChild(boardParamsDiv);
-		boardParamsDiv = new Div();
-		boardParamsDiv.setSclass("padding-left: 5px;");
-
+		if (prmLayout != null) {
+			northVLayout.removeChild(prmLayout);
+			prmLayout = null;
+		}
 		if (dashboardId > 0 && dashboard.getParameters().size() > 0) {
-
+			prmLayout = new Hlayout();
 			fillParameterEditors();
 			for (int i = 0; i < m_sEditors.size(); i++) {
 				WEditor editor = m_sEditors.get(i);
-				boardParamsDiv.appendChild(new Separator("vertical"));
-				boardParamsDiv.appendChild(editor.getLabel());
-				editor.getLabel().setStyle("padding-right:3px;");
-				boardParamsDiv.appendChild(editor.getComponent());
+				if (editor.isVisible()) {
+					// prmLayout.appendChild(new Separator("vertical"));
+					prmLayout.appendChild(editor.getLabel());
+					// editor.getLabel().setStyle("padding-right:3px;");
+					prmLayout.appendChild(editor.getComponent());
+				}
 			}
+			// prmLayout.appendChild(new Separator("vertical"));
+			northVLayout.appendChild(prmLayout);
+			mbForm.invalidate();
 		}
-		boardParamsDiv.appendChild(new Separator("vertical"));
-		paramPanelHbox.appendChild(boardParamsDiv);
 	}
 
 	private void fillParameterEditors() {
 		m_sEditors.clear();
 		mapEditorParameter.clear();
-		
+
 		for (MBXSMBDashboardParam param : dashboard.getParameters()) {
 			GridField field = getGridField(param);
 			WEditor editor = WebEditorFactory.getEditor(field, true);
@@ -341,11 +342,9 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 			if (defaultValue != null) {
 				editor.setValue(defaultValue);
 			}
+			editor.setReadWrite(! field.isReadOnly());
+			editor.setVisible(field.isDisplayed());
 
-			if (field.isReadOnly()) {
-				editor.setReadWrite(false);
-			}
-			
 			m_sEditors.add(editor);
 			mapEditorParameter.put(param, editor);
 		}
@@ -357,8 +356,13 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 				false, false, null);
 		gvo.DefaultValue = param.getDefaultValue();
 		gvo.IsReadOnly = param.isReadOnly();
+		gvo.IsDisplayed = param.isDisplayed();
 		GridField field = new GridField(gvo);
 		return field;
+	}
+
+	private void setStatus(String msg) {
+		lStatus.setText(msg);
 	}
 
 }
