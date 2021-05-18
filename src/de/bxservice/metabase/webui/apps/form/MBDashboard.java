@@ -27,6 +27,7 @@ package de.bxservice.metabase.webui.apps.form;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -51,7 +52,6 @@ import org.compiere.util.CLogger;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Msg;
-import org.zkoss.json.JSONObject;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.event.Events;
@@ -241,6 +241,7 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 	public void valueChange(ValueChangeEvent evt) {
 		if (evt != null && evt.getSource() instanceof WEditor) {
 			WEditor editor = (WEditor) evt.getSource();
+			editor.setValue(evt.getNewValue());
 			MBXSMBDashboardParam param = null;
 			for (Entry<MBXSMBDashboardParam, WEditor> es : mapEditorParameter.entrySet()) {
 				if (es.getValue() == editor) {
@@ -263,16 +264,13 @@ public class MBDashboard implements IFormController, EventListener<Event>, Value
 			iframe.setSrc(null);
 			setStatus(Msg.getMsg(Env.getCtx(), "BXS_MBSelectDashboard"));
 		} else {
-			JSONObject params = new JSONObject();
+			Map<MBXSMBDashboardParam, Object> parammap = new LinkedHashMap<MBXSMBDashboardParam, Object>();
 			for (MBXSMBDashboardParam param : dashboard.getParameters()) {
 				WEditor editor = mapEditorParameter.get(param);
-				params.put(param.getColumnName().toLowerCase(), editor.getValue());
+				parammap.put(param, editor.getValue());
 			}
-			// Add mandatory parameter AD_Client_ID if it doesn't exist
-			if (! params.containsKey("ad_client_id"))
-				params.put("ad_client_id", Env.getAD_Client_ID(Env.getCtx()));
 
-			String url = dashboard.getMetabaseEmbeddedUrl(params);
+			String url = dashboard.getMetabaseEmbeddedUrl(parammap);
 
 			if (dashboard.getWidth() != null && dashboard.getWidth().intValue() > 0) {
 				ZKUpdateUtil.setWidth(iframe, dashboard.getWidth().intValue() + "px");

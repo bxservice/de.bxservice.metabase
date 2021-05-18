@@ -26,6 +26,7 @@
 package de.bxservice.metabase.model;
 
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import java.util.Properties;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.Query;
 import org.compiere.util.DB;
+import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Util;
@@ -53,7 +55,7 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 8257136864285156648L;
+	private static final long serialVersionUID = 2208240357135243189L;
 
 	// Dashboard Parameters
 	private List<MBXSMBDashboardParam> parameters = null;
@@ -107,11 +109,31 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 		return list;
 	}
 
-	public String getMetabaseEmbeddedUrl(JSONObject params) {
+	public String getMetabaseEmbeddedUrl(Map<MBXSMBDashboardParam, Object> parammap) {
+		JSONObject params = new JSONObject();
+		for (Map.Entry<MBXSMBDashboardParam, Object> entry : parammap.entrySet()) {
+			MBXSMBDashboardParam param = entry.getKey();
+			Object value = entry.getValue();
+			if (value == null) {
+				params.put(param.getColumnName().toLowerCase(), null);
+			} else if (param.getAD_Reference_ID() == DisplayType.Date) {
+				SimpleDateFormat sdf = DisplayType.getDateFormat_JDBC();
+				params.put(param.getColumnName().toLowerCase(), sdf.format(value));
+			} else if (param.getAD_Reference_ID() == DisplayType.DateTime) {
+				SimpleDateFormat sdf = DisplayType.getTimestampFormat_Default();
+				params.put(param.getColumnName().toLowerCase(), sdf.format(value));
+			} else {
+				params.put(param.getColumnName().toLowerCase(), value);
+			}
+		}
+		// Add mandatory parameter AD_Client_ID if it doesn't exist
+		if (! params.containsKey("ad_client_id"))
+			params.put("ad_client_id", Env.getAD_Client_ID(Env.getCtx()));
+
 		MBXSMBServer mbserver = new MBXSMBServer(getCtx(), getBXS_MBServer_ID(), get_TrxName());
 		String metaBaseEncodedSecretKey = Base64.getEncoder().encodeToString(mbserver.getBXS_MBSecretKey().getBytes());
 		final Date createdDate = new Date();
-	    final Date expirationDate = new Date(System.currentTimeMillis() + (getBXS_MBTokenExpiration() * 10000)); // 10 seconds
+		final Date expirationDate = new Date(System.currentTimeMillis() + (getBXS_MBTokenExpiration() * 1000));
 
 		Map<String, Object> payload = new HashMap<String, Object>();
 		JSONObject resource = new JSONObject();
@@ -120,10 +142,10 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 		payload.put("params", params);
 
 		StringBuilder metabaseSiteURL = new StringBuilder(mbserver.getURL());
-		
+
 		metabaseSiteURL.append(MSysConfig.getValue("BXS_METABASE_EMBED_LOCATION", "/embed/dashboard/"));
-		
-	    String jwtToken = Jwts.builder()
+
+		String jwtToken = Jwts.builder()
 				.setHeaderParam("typ", "JWT")
 				.setClaims(payload)
 				.signWith(SignatureAlgorithm.HS256, metaBaseEncodedSecretKey)
@@ -131,7 +153,7 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 				.setExpiration(expirationDate)
 				.compact();
 		metabaseSiteURL.append(jwtToken);
-		
+
 		metabaseSiteURL.append("#bordered=");
 		if (isBXS_MBIsBordered())
 			metabaseSiteURL.append("true");
