@@ -87,7 +87,7 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 	public static KeyNamePair[] getDashboardList() {
 		final String sql = ""
 				+ "SELECT d.BXS_MBDashboard_ID, "
-				+ "       d.NAME "
+				+ "       d.Name "
 				+ "FROM   BXS_MBDashboard d "
 				+ "WHERE  d.AD_Client_ID IN ( 0, ? ) "
 				+ "       AND d.IsActive = 'Y' "
@@ -101,7 +101,7 @@ public class MBXSMBDashboard extends X_BXS_MBDashboard {
 				+ "                                                 FROM   AD_Role_Included "
 				+ "                                                 WHERE  AD_Role_ID = ? "
 				+ "                                                        AND IsActive = 'Y')))) "
-				+ "ORDER  BY d.NAME";
+				+ "ORDER  BY d.Name";
 		int clientId = Env.getAD_Client_ID(Env.getCtx());
 		int userId = Env.getAD_User_ID(Env.getCtx());
 		int roleId = Env.getAD_Role_ID(Env.getCtx());
