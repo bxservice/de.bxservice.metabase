@@ -35,6 +35,7 @@ import org.compiere.model.GridField;
 import org.compiere.util.CLogger;
 import org.compiere.util.Util;
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.HtmlBasedComponent;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.Events;
 import org.zkoss.zul.Div;
@@ -191,21 +192,18 @@ public class WMBEditor extends WEditor {
 				.append("\"")
 				.append(" frameborder=\"0\"");
 		if (dc.getWidth().signum() > 0) {
-			htmlContent.append(" width=\"")
-				.append(dc.getWidth())
-				.append("\"");
+			if (content instanceof HtmlBasedComponent)
+				((HtmlBasedComponent)content).setWidth(dc.getWidth() + "px");
+			htmlContent.append(" width=\"").append(dc.getWidth()).append("\"");
 		}
 		if (dc.getHeight().signum() > 0) {
-			htmlContent.append(" height=\"")
-				.append(dc.getHeight())
-				.append("\"");
+			if (content instanceof HtmlBasedComponent)
+				((HtmlBasedComponent)content).setHeight(dc.getHeight() + "px");
+			htmlContent.append(" height=\"").append(dc.getHeight()).append("\"");
 		}
 		htmlContent.append("allowtransparency></iframe>");
 
-		StringBuilder result = new StringBuilder("<html><head>");
-		result.append("</head><body><div class=\"content\">\n");
-		result.append(htmlContent).append("<br>\n");
-		result.append("</div>\n</body>\n</html>");
+		StringBuilder result = new StringBuilder(htmlContent);
 
 		Html html = new Html();
 		html.setContent(result.toString());
