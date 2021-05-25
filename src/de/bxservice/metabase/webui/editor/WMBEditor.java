@@ -33,6 +33,7 @@ import org.adempiere.webui.editor.IEditorConfiguration;
 import org.adempiere.webui.editor.WEditor;
 import org.compiere.model.GridField;
 import org.compiere.util.CLogger;
+import org.compiere.util.Env;
 import org.compiere.util.Util;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zk.ui.HtmlBasedComponent;
@@ -179,6 +180,8 @@ public class WMBEditor extends WEditor {
 		for (MBXSMBDashboardParam param : dc.getParameters()) {
 			Object value = gridField.getGridTab().getValue(param.getColumnName());
 			if (value == null)
+				value = Env.getContext(Env.getCtx(), gridField.getWindowNo(), param.getColumnName(), false);
+			if (value == null)
 				logger.warning("Could not find parameter " + param.getColumnName() + " for dashboard " + dc.getName());
 			else
 				parammap.put(param, value);
@@ -203,10 +206,8 @@ public class WMBEditor extends WEditor {
 		}
 		htmlContent.append("allowtransparency></iframe>");
 
-		StringBuilder result = new StringBuilder(htmlContent);
-
 		Html html = new Html();
-		html.setContent(result.toString());
+		html.setContent(htmlContent.toString());
 		content.appendChild(html);
 	}
 
