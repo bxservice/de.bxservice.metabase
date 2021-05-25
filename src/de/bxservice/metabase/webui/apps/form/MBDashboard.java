@@ -74,8 +74,6 @@ import de.bxservice.metabase.model.MBXSMBDashboardParam;
  */
 public class MBDashboard implements IFormController, EventListener<Event>, ValueChangeListener {
 
-	/* TODO: Show comment from dashboard - could be in the QuickInfo section */
-
 	public static CLogger log = CLogger.getCLogger(MBDashboard.class);
 
 	private int dashboardId = -1;
