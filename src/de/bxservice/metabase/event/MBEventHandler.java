@@ -47,6 +47,9 @@ public class MBEventHandler extends AbstractEventHandler
 	/**	Logger			*/
 	private static CLogger log = CLogger.getCLogger(MBEventHandler.class);
 
+	private static final String BEFORE_PARSE_STATUS_LINE = "idempiere/statusLine/beforeParse"; // MStatusLine.BEFORE_PARSE_STATUS_LINE;
+	private static final String EVENT_WINDOWNO = "event.windowno"; // MStatusLine.EVENT_WINDOWNO;
+
 	/**
 	 *	Initialize Validation
 	 */
@@ -54,7 +57,7 @@ public class MBEventHandler extends AbstractEventHandler
 	protected void initialize() {
 		log.warning("");
 
-		registerEvent(MStatusLine.BEFORE_PARSE_STATUS_LINE);
+		registerEvent(BEFORE_PARSE_STATUS_LINE);
 	}	//	initialize
 
 	/**
@@ -71,8 +74,8 @@ public class MBEventHandler extends AbstractEventHandler
 		PO po = getPO(event);
 		log.info(po + " Type: " + type);
 
-		if (po instanceof MStatusLine && (type.equals(MStatusLine.BEFORE_PARSE_STATUS_LINE))) {
-			int windowNo = getEventProperty(event, MStatusLine.EVENT_WINDOWNO);
+		if (po instanceof MStatusLine && (type.equals(BEFORE_PARSE_STATUS_LINE))) {
+			int windowNo = getEventProperty(event, EVENT_WINDOWNO);
 			MStatusLine sl = (MStatusLine)po;
 			setContextForMetabase(sl, windowNo);
 		}
