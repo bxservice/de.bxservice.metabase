@@ -53,8 +53,6 @@ public class MBViewer extends Window implements EventListener<Event>, ITabOnClos
 
 	/** Window No					*/
 	private int                 m_WindowNo = -1;
-	private long prevKeyEventTime = 0;
-	private KeyEvent prevKeyEvent;
 
 	private Iframe iframe;
 
@@ -112,30 +110,14 @@ public class MBViewer extends Window implements EventListener<Event>, ITabOnClos
 	public void onEvent(Event event) throws Exception {
 		if (event.getName().equals(Events.ON_CTRL_KEY)) {
 			KeyEvent keyEvent = (KeyEvent) event;
-			if (LayoutUtils.isReallyVisible(this)) {
-				//filter same key event that is too close
-				//firefox fire key event twice when grid is visible
-				long time = System.currentTimeMillis();
-				if (prevKeyEvent != null && prevKeyEventTime > 0 &&
-						prevKeyEvent.getKeyCode() == keyEvent.getKeyCode() &&
-						prevKeyEvent.getTarget() == keyEvent.getTarget() &&
-						prevKeyEvent.isAltKey() == keyEvent.isAltKey() &&
-						prevKeyEvent.isCtrlKey() == keyEvent.isCtrlKey() &&
-						prevKeyEvent.isShiftKey() == keyEvent.isShiftKey()) {
-					if ((time - prevKeyEventTime) <= 300) {
-						return;
-					}
-				}
+			if (LayoutUtils.isReallyVisible(this))
 				this.onCtrlKeyEvent(keyEvent);
-			}
 		}
 	}
 
 	private void onCtrlKeyEvent(KeyEvent keyEvent) {
 		if (keyEvent.isAltKey() && keyEvent.getKeyCode() == 0x58) { // Alt-X
 			if (m_WindowNo > 0) {
-				prevKeyEventTime = System.currentTimeMillis();
-				prevKeyEvent = keyEvent;
 				keyEvent.stopPropagation();
 				SessionManager.getAppDesktop().closeWindow(m_WindowNo);
 			}
